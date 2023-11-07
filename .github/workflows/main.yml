@@ -1,24 +1,26 @@
-name: Sauvegarde d'un fichier sur le réseau IPFS
-on: push
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+
+
 jobs:
-  Deploy:
-    name: Deploy
+  build:
+    name: Build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@master
-      - run: |
-          jar cvf fichier.war *
-      - uses: jirutka/setup-alpine@v1
+      - uses: actions/checkout@v2
         with:
-          branch: v3.15
-      - run: |
-          apk add go-ipfs
-          ipfs init
-          ipfs daemon &
-        shell: alpine.sh --root {0}
-      - name: Sauvegarde fichier war sur IPFS
-        run: |
-          ls -la 
-          ipfs swarm peers
-          ipfs add fichier.war
-        shell: alpine.sh --root {0}
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+      - uses: sonarsource/sonarqube-scan-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      # If you wish to fail your job when the Quality Gate is red, uncomment the
+      # following lines. This would typically be used to fail a deployment.
+      # - uses: sonarsource/sonarqube-quality-gate-action@master
+      #   timeout-minutes: 5
+      #   env:
+      #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
