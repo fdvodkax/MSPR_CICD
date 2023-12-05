@@ -5,16 +5,20 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Connexion à MySQL via JSP</title>
+    <title>Modification du Titre d'un Film</title>
 </head>
 <body>
-    <h1>Exemple de connexion à MySQL via JSP</h1>
+    <h1>Modification du Titre d'un Film</h1>
 
-    <!-- Formulaire pour saisir l'année -->
-    <form method="get" action="">
-        <label for="annee">Choisir une année :</label>
-        <input type="number" id="annee" name="annee" min="1900" max="2100">
-        <input type="submit" value="Rechercher">
+    <!-- Formulaire pour saisir l'ID et le nouveau titre -->
+    <form method="post" action="">
+        <label for="filmId">ID du Film :</label>
+        <input type="number" id="filmId" name="filmId" required>
+        <br>
+        <label for="nouveauTitre">Nouveau Titre :</label>
+        <input type="text" id="nouveauTitre" name="nouveauTitre" required>
+        <br>
+        <input type="submit" value="Modifier Titre">
     </form>
 
     <% 
@@ -23,31 +27,29 @@
             String user = "root";
             String password = "root";
 
-            // Vérification de la présence de l'année dans la requête
-            if (request.getParameter("annee") != null) {
-                int anneeRecherchee = Integer.parseInt(request.getParameter("annee"));
+            // Vérification de la présence des paramètres dans la requête POST
+            if (request.getMethod().equals("POST")) {
+                int filmId = Integer.parseInt(request.getParameter("filmId"));
+                String nouveauTitre = request.getParameter("nouveauTitre");
 
                 // Charger le pilote JDBC
                 Class.forName("com.mysql.jdbc.Driver");
 
                 // Établir la connexion
                 try (Connection conn = DriverManager.getConnection(url, user, password)) {
-                    // Requête SQL pour récupérer tous les films de l'année saisie
-                    String sql = "SELECT idFilm, titre, année FROM Film WHERE année = ?";
+                    // Requête SQL pour mettre à jour le titre du film en fonction de l'ID
+                    String sql = "UPDATE Film SET titre = ? WHERE idFilm = ?";
                     try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-                        pstmt.setInt(1, anneeRecherchee); // Utilisation de l'année saisie
-                        try (ResultSet rs = pstmt.executeQuery()) {
+                        pstmt.setString(1, nouveauTitre);
+                        pstmt.setInt(2, filmId);
 
-                            // Affichage de tous les films de l'année saisie
-                            while (rs.next()) {
-                                String colonne1 = rs.getString("idFilm");
-                                String colonne2 = rs.getString("titre");
-                                String colonne3 = rs.getString("année");
-                %>
-                                <!-- Affichage de chaque film correspondant à l'année saisie -->
-                                <p>Colonne 1 : <%= colonne1 %>, Colonne 2 : <%= colonne2 %>, Colonne 3 : <%= colonne3 %></p>
-                <%
-                            }
+                        // Exécution de la mise à jour
+                        int rowsAffected = pstmt.executeUpdate();
+
+                        if (rowsAffected > 0) {
+                            out.println("Le titre du film a été modifié avec succès.");
+                        } else {
+                            out.println("Aucun film trouvé avec l'ID spécifié.");
                         }
                     }
                 }
