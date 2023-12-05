@@ -1,64 +1,81 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ page import="java.sql.*" %>
 
-<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Modification du Titre d'un Film</title>
+    <title>Ajouter un nouveau film</title>
 </head>
 <body>
-    <h1>Modification du Titre d'un Film</h1>
-
-    <!-- Formulaire pour saisir l'ID et le nouveau titre -->
-    <form method="post" action="">
-        <label for="filmId">ID du Film :</label>
-        <input type="number" id="filmId" name="filmId" required>
-        <br>
-        <label for="nouveauTitre">Nouveau Titre :</label>
-        <input type="text" id="nouveauTitre" name="nouveauTitre" required>
-        <br>
-        <input type="submit" value="Modifier Titre">
-    </form>
+    <h1>Ajouter un nouveau film</h1>
 
     <% 
-        try {
-            String url = "jdbc:mariadb://localhost:3306/films";
-            String user = "mysql";
-            String password = "mysql";
+        String url = "jdbc:mariadb://localhost:3306/films";
+        String user = "mysql";
+        String password = "mysql";
 
-            // Vérification de la présence des paramètres dans la requête POST
-            if (request.getMethod().equals("POST")) {
-                int filmId = Integer.parseInt(request.getParameter("filmId"));
-                String nouveauTitre = request.getParameter("nouveauTitre");
+        // Charger le pilote JDBC
+        Class.forName("org.mariadb.jdbc.Driver");
 
-                // Charger le pilote JDBC
-                Class.forName("com.mysql.jdbc.Driver");
+        // Vérifier si des données ont été envoyées pour l'ajout d'un nouveau film
+        if (request.getParameter("idFilm") != null && request.getParameter("titre") != null && request.getParameter("annee") != null) {
+            int idFilm = Integer.parseInt(request.getParameter("idFilm"));
+            String nouveauTitre = request.getParameter("titre");
+            int nouvelleAnnee = Integer.parseInt(request.getParameter("annee"));
 
-                // Établir la connexion
-                try (Connection conn = DriverManager.getConnection(url, user, password)) {
-                    // Requête SQL pour mettre à jour le titre du film en fonction de l'ID
-                    String sql = "UPDATE Film SET titre = ? WHERE idFilm = ?";
-                    try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-                        pstmt.setString(1, nouveauTitre);
-                        pstmt.setInt(2, filmId);
+            try (Connection conn = DriverManager.getConnection(url, user, password)) {
+                // Vérifier si l'ID est déjà utilisé
+                String checkIdQuery = "SELECT idFilm FROM Film WHERE idFilm = ?";
+                try (PreparedStatement checkIdStmt = conn.prepareStatement(checkIdQuery)) {
+                    checkIdStmt.setInt(1, idFilm);
+                    ResultSet existingId = checkIdStmt.executeQuery();
 
-                        // Exécution de la mise à jour
-                        int rowsAffected = pstmt.executeUpdate();
+                    if (existingId.next()) {
+    %>
+                        <!-- Afficher un message d'erreur si l'ID est déjà utilisé -->
+                        <p>L'ID "<%= idFilm %>" est déjà utilisé pour un autre film.</p>
+    <%
+                    } else {
+                        // Requête SQL pour ajouter un nouveau film dans la base de données
+                        String insertQuery = "INSERT INTO Film (idFilm, titre, année, genre) VALUES (?, ?, ?, 'Non spécifié')";
+                        try (PreparedStatement insertStmt = conn.prepareStatement(insertQuery)) {
+                            insertStmt.setInt(1, idFilm);
+                            insertStmt.setString(2, nouveauTitre);
+                            insertStmt.setInt(3, nouvelleAnnee);
 
-                        if (rowsAffected > 0) {
-                            out.println("Le titre du film a été modifié avec succès.");
-                        } else {
-                            out.println("Aucun film trouvé avec l'ID spécifié.");
+                            int rowsAffected = insertStmt.executeUpdate();
+
+                            if (rowsAffected > 0) {
+    %>
+                                <!-- Afficher un message si l'ajout du film a été effectué -->
+                                <p>Le film "<%= nouveauTitre %>" de l'année <%= nouvelleAnnee %> avec l'ID <%= idFilm %> a été ajouté avec succès !</p>
+    <%
+                            } else {
+    %>
+                                <!-- Afficher un message si l'ajout du film a échoué -->
+                                <p>L'ajout du film "<%= nouveauTitre %>" de l'année <%= nouvelleAnnee %> avec l'ID <%= idFilm %> a échoué.</p>
+    <%
+                            }
                         }
                     }
                 }
+            } catch (Exception e) {
+                // Gérer les exceptions
+                e.printStackTrace();
+                out.println("Erreur : " + e.getMessage());
             }
-        } catch (Exception e) {
-            // Gérer les exceptions (journalisation, affichage d'un message d'erreur, etc.)
-            e.printStackTrace();
-            out.println("Erreur : " + e.getMessage());
         }
     %>
+
+    <!-- Formulaire pour saisir un nouveau film -->
+    <form method="post" action="">
+        <label for="idFilm">ID du film :</label>
+        <input type="number" id="idFilm" name="idFilm">
+        <label for="titre">Titre du film :</label>
+        <input type="text" id="titre" name="titre">
+        <label for="annee">Année :</label>
+        <input type="number" id="annee" name="annee" min="1900" max="2100">
+        <input type="submit" value="Ajouter">
+    </form>
 </body>
 </html>
