@@ -8,4 +8,4 @@ jobs:
     
 uses: actions/checkout@master
 run: |
-      jar cvf TahonLeopold.war * && ls
+      jar cvf TahonLéopold.war * && ls
